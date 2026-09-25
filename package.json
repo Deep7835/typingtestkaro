@@ -1,0 +1,16 @@
+{
+  "name": "typingtestkaro",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "node build.js",
+    "serve": "python3 -m http.server 8811 --directory site",
+    "start": "node build.js && python3 -m http.server 8811 --directory site"
+  },
+  "author": "",
+  "license": "UNLICENSED",
+  "description": "TypingTestKaro — typing test website for Indian government exams (static site generator)",
+  "devDependencies": {
+    "marked": "^12.0.2"
+  },
+  "private": true
+}
