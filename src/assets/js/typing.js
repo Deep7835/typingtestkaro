@@ -680,6 +680,13 @@
     this.started = true;
     this.startAt = Date.now();
     this.samples = [];
+    if (!TypingTest._guard) {
+      TypingTest._guard = true;
+      window.addEventListener("beforeunload", function (e) {
+        var busy = [].some.call(document.querySelectorAll("[data-typing-test]"), function (n) { return n._tt && n._tt.started && !n._tt.done; });
+        if (busy) { e.preventDefault(); e.returnValue = ""; }
+      });
+    }
     this.timer = setInterval(function () { self.tick(); }, 250);
   };
 
@@ -827,7 +834,7 @@
     this.r.result.innerHTML =
       '<div class="tt-result-head"><div><span class="eyebrow">Your result</span><h2>' + Math.round(r.net) + ' <small>Net WPM</small></h2>' +
       '<p class="muted mb-0">' + esc(LAYOUTS[o.layout].label) + " · " + fmtTime(this.elapsed) + " typed · " + esc(this.passageMeta.title) + "</p></div>" +
-      '<div class="row"><button type="button" class="btn btn-primary" data-x="retry">↻ Try again</button><button type="button" class="btn btn-outline" data-x="new">New passage</button><button type="button" class="btn btn-accent" data-x="cert">🎓 Certificate</button></div></div>' +
+      '<div class="row"><button type="button" class="btn btn-primary" data-x="retry">↻ Try again</button><button type="button" class="btn btn-outline" data-x="new">New passage</button><button type="button" class="btn btn-accent" data-x="cert">🎓 Certificate</button><button type="button" class="btn btn-outline" data-copy="' + esc("I typed " + Math.round(r.net) + " WPM (net) with " + r.accuracy.toFixed(1) + "% accuracy on the " + (ex ? ex.name + " " : "") + LAYOUTS[o.layout].label + " typing test at TypingTestKaro — typingtestkaro.com") + '">📋 Copy result</button></div></div>' +
       verdict +
       '<div class="tt-cert hide" data-x="certbox"><label class="tt-field"><span>Name on certificate</span><input class="input" data-x="certname" maxlength="40" placeholder="Your full name"></label>' +
         '<button type="button" class="btn btn-primary" data-x="certgo">Download certificate (PNG)</button>' +
@@ -885,6 +892,7 @@
       acc: Math.round(r.accuracy), exam: ex ? ex.name : null
     });
     store("te_history", hist.slice(0, 200));
+    if (window.TETrack) window.TETrack("typing_test_complete", { layout: o.layout, minutes: Math.round(this.elapsed / 60), net_wpm: Math.round(r.net), accuracy: Math.round(r.accuracy), exam: ex ? ex.name : "practice" });
 
     function rs(label, val, unit) {
       return '<div class="tt-rs"><span>' + label + "</span><b>" + val + (unit ? "<small>" + unit + "</small>" : "") + "</b></div>";

@@ -77,8 +77,12 @@
     chars.map(function (c) { return '<span class="chip"><b>' + esc(c) + "</b>" + (layout !== "qwerty" ? " <kbd>" + esc(TE.keyForChar(layout, c)) + "</kbd>" : "") + " ×" + weak[c] + "</span>"; }).join("") +
     '</div><button class="btn btn-outline btn-sm" type="button" id="weak-reset">Reset</button></div>';
   document.getElementById("weak-reset").addEventListener("click", function () {
-    try { localStorage.removeItem("te_weak_" + layout); } catch (e) {}
-    location.reload();
+    (window.TEConfirm ? window.TEConfirm("Your recorded weak keys for this layout will be forgotten. Future tests will record them again.", "Reset", "Reset weak keys?") : Promise.resolve(true))
+      .then(function (ok) {
+        if (!ok) return;
+        try { localStorage.removeItem("te_weak_" + layout); } catch (e) {}
+        location.reload();
+      });
   });
 
   window.TE_LESSON = {

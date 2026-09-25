@@ -93,7 +93,11 @@
       ta.focus();
     });
     document.getElementById("hp-copy").addEventListener("click", function () { copy(value()); });
-    document.getElementById("hp-clear").addEventListener("click", function () { committed = ""; raw = ""; paint(); ta.focus(); });
+    document.getElementById("hp-clear").addEventListener("click", function () {
+      if (!value().trim()) return ta.focus();
+      (window.TEConfirm ? window.TEConfirm("Everything you have typed in the box will be erased.", "Clear text", "Clear the text?") : Promise.resolve(true))
+        .then(function (ok) { if (ok) { committed = ""; raw = ""; paint(); } ta.focus(); });
+    });
     document.getElementById("hp-download").addEventListener("click", function () {
       var blob = new Blob([value()], { type: "text/plain;charset=utf-8" });
       var a = document.createElement("a");
@@ -173,7 +177,8 @@
           }).join("") + "</tbody></table></div>" +
         '<div class="row mt-3"><a class="btn btn-primary" href="/typing-test/">Take another test</a><button class="btn btn-outline" type="button" id="pr-clear">Clear history</button></div>';
       document.getElementById("pr-clear").addEventListener("click", function () {
-        if (confirm("Delete all saved results from this browser?")) { store("te_history", null); draw(); }
+        (window.TEConfirm ? window.TEConfirm("All your saved typing test results will be deleted from this browser. This can't be undone.", "Delete results", "Clear your history?") : Promise.resolve(confirm("Delete all saved results?")))
+          .then(function (ok) { if (ok) { store("te_history", null); draw(); if (window.TEToast) window.TEToast("History cleared"); } });
       });
     };
     draw();

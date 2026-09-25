@@ -14,6 +14,12 @@ const OUT = path.join(__dirname, "site");
 global.BUILD_V = Date.now().toString(36); // cache-busting query for CSS/JS
 const SRC = path.join(__dirname, "src");
 const pages = []; // for sitemap
+const searchIdx = []; // for /search-index.json (site search)
+const SEARCH_TYPES = [
+  [/^\/typing-test\//, "test", 5], [/^\/exams\/.+/, "exam", 5], [/^\/courses\/[^/]+\/lesson-/, "lesson", 0],
+  [/^\/courses\//, "course", 3], [/^\/games\//, "game", 2], [/^\/(tools|keyboard-layouts|quiz|computer-shortcut-keys|practice)\//, "tool", 3],
+  [/^\/blog\/(archive|category)\//, "page", 0], [/^\/blog\/.+/, "blog", 1]
+];
 
 /* ---------------- fs helpers ---------------- */
 function write(rel, html) {
@@ -24,7 +30,14 @@ function write(rel, html) {
 function emit(page) {
   const rel = page.path === "/" ? "index.html" : page.path.replace(/^\//, "") + (page.path.endsWith("/") ? "index.html" : "");
   write(rel, render(page, courses));
-  if (!page.noindex && page.path !== "/404.html") pages.push({ path: page.path, priority: page.priority || 0.6 });
+  if (!page.noindex && page.path !== "/404.html") {
+    pages.push({ path: page.path, priority: page.priority || 0.6 });
+    const t = SEARCH_TYPES.find(([re]) => re.test(page.path)) || [null, "page", 1];
+    searchIdx.push({
+      t: page.title.replace(/\s*\|\s*TypingTestKaro.*$/, "").replace(/ — Free Online Practice.*$/, ""),
+      d: (page.description || "").slice(0, 150), u: page.path, k: t[1], w: t[2], x: page.keywords || ""
+    });
+  }
 }
 function copyDir(from, to) {
   fs.mkdirSync(to, { recursive: true });
@@ -121,6 +134,7 @@ function examCard(e) {
 }
 function testEmbed(attrs) {
   return `<div data-typing-test ${Object.entries(attrs).map(([k, v]) => `data-${k}="${esc(v)}"`).join(" ")}>
+    <div class="tt-skeleton" aria-busy="true" aria-label="Loading typing test"><span class="sk sk-bar"></span><span class="sk sk-row"></span><span class="sk sk-box"></span><span class="sk sk-input"></span><span class="sr-only">Loading the typing test…</span></div>
     <noscript><p>Please enable JavaScript to take the typing test.</p></noscript></div>`;
 }
 function ctaBand(title, text, href, label) {
@@ -327,7 +341,7 @@ if (vis && getComputedStyle(vis).display !== "none") {
     body: fxBody, css: TEST_CSS.concat(["/assets/css/pages.css", "/assets/css/home.css"]),
     schema: [orgSchema, {
       "@context": "https://schema.org", "@type": "WebSite", name: SITE.name, url: SITE.url,
-      potentialAction: { "@type": "SearchAction", target: SITE.url + "/exams/?q={search_term_string}", "query-input": "required name=search_term_string" }
+      potentialAction: { "@type": "SearchAction", target: SITE.url + "/search/?q={search_term_string}", "query-input": "required name=search_term_string" }
     }, faqSchema(faqs)]
   });
 })();
@@ -553,7 +567,7 @@ exams.forEach((e) => {
   const body = pageHero({
     title: `${esc(e.name)} Typing Test ${new Date().getFullYear()} — Free Online Practice`, crumbs: [{ name: "Exams", href: "/exams/" }, { name: e.name }],
     lead: `Practise the ${esc(e.full)} in an exam-style interface — ${esc(e.requirementText)}.`,
-    badges: [catName[e.category], langs, `${e.duration} minutes`, e.official ? "As per notification" : "Practice target"]
+    badges: [catName[e.category], langs, `${e.duration} minutes`, e.official ? "As per notification" : "Practice target", `Last updated ${fmtDate(SITE.updated)}`]
   }) + `<section class="section-sm"><div class="container">
   <script>window.TE_EXAM=${JSON.stringify(cfg)};</script>
   ${testEmbed({ mode: "exam", layout: e.defaultLayout, duration: e.duration * 60 })}
@@ -858,7 +872,7 @@ GAMES.forEach((g) => {
     const body = `<section class="page-hero">${PH_DECO}<div class="container" style="max-width:900px">
   <nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/">Home</a><span>/</span><a href="/blog/">Blog</a><span>/</span><a href="/blog/category/${catMeta(p.category).slug}/">${esc(p.category)}</a></nav>
   <h1>${esc(p.title)}</h1><p>${esc(p.excerpt)}</p>
-  <div class="chips mt-2"><a class="badge" href="/blog/category/${catMeta(p.category).slug}/">${esc(p.category)}</a><span class="badge">Updated ${fmtDate(p.date)}</span><span class="badge">${esc(p.readTime)} read</span><a class="badge byline" href="${AUTHOR.path}">By ${esc(AUTHOR.name)}</a></div></div></section>
+  <div class="chips mt-2"><a class="badge" href="/blog/category/${catMeta(p.category).slug}/">${esc(p.category)}</a><span class="badge">Updated ${fmtDate(p.date)}</span><span class="badge">${esc(p.readTime)} read</span><a class="badge byline" href="${AUTHOR.path}">By ${esc(AUTHOR.name)}</a><button class="badge badge-btn" type="button" data-copy-url aria-label="Copy link to this article">🔗 Copy link</button></div></div></section>
 <section class="section-sm"><div class="container layout-sidebar">
   <div><article class="prose">${p.html}</article>${authorBox()}</div>
   <aside class="sidebar">
@@ -925,16 +939,20 @@ simplePage("/contact/", "Contact Us — TypingTestKaro", "Contact Us", "Contact 
 <div class="grid grid-2 not-prose"><div class="card"><h3>Email</h3><p><a href="mailto:${SITE.email}">${SITE.email}</a></p><p>We usually reply within 2 working days.</p></div>
 <div class="card"><h3>Report an exam update</h3><p>Send the link to the official notification and we'll update the exam page.</p></div></div>
 <h2>Send a message</h2>
-<form class="card contact-form" action="mailto:${SITE.email}" method="post" enctype="text/plain">
-<div class="field"><label for="cf-name">Name</label><input class="input" id="cf-name" name="name" required></div>
-<div class="field"><label for="cf-email">Email</label><input class="input" id="cf-email" type="email" name="email" required></div>
-<div class="field"><label for="cf-msg">Message</label><textarea class="input" id="cf-msg" name="message" rows="5" required></textarea></div>
-<button class="btn btn-primary" type="submit">Send message</button></form>`);
+<form class="card contact-form" id="contact-form" novalidate>
+<div class="field"><label for="cf-name">Name <span aria-hidden="true">*</span></label><input class="input" id="cf-name" name="name" autocomplete="name" required aria-describedby="cf-name-err"><p class="field-error" id="cf-name-err" hidden></p></div>
+<div class="field"><label for="cf-email">Email <span aria-hidden="true">*</span></label><input class="input" id="cf-email" type="email" name="email" autocomplete="email" required aria-describedby="cf-email-err"><p class="field-error" id="cf-email-err" hidden></p></div>
+<div class="field"><label for="cf-topic">Topic</label><select class="input" id="cf-topic" name="topic"><option>General feedback</option><option>Exam rule update</option><option>Bug report</option><option>Partnership</option></select></div>
+<div class="field"><label for="cf-msg">Message <span aria-hidden="true">*</span></label><textarea class="input" id="cf-msg" name="message" rows="5" required aria-describedby="cf-msg-err"></textarea><p class="field-error" id="cf-msg-err" hidden></p></div>
+<div class="hp-field" aria-hidden="true"><label for="cf-website">Leave this empty</label><input id="cf-website" name="website" tabindex="-1" autocomplete="off"></div>
+<p class="form-status" role="status" aria-live="polite" hidden></p>
+<button class="btn btn-primary" type="submit">Send message</button>
+<p class="muted mt-2" style="font-size:.82rem">Sending opens your email app with the message ready. Fields marked * are required.</p></form>`);
 simplePage("/privacy-policy/", "Privacy Policy — TypingTestKaro", "Privacy Policy", "How TypingTestKaro handles your data: results are stored locally in your browser; no account required.",
-  `<p><i>Last updated: ${fmtDate("2026-09-24")}</i></p>
+  `<p><i>Last updated: ${fmtDate(SITE.updated)}</i></p>
 <h2>Information we collect</h2><p>TypingTestKaro does not require an account. Your typing results, course progress, game scores and preferences (such as dark mode and font size) are stored in your browser's local storage on your own device. They are not sent to our servers.</p>
 <h2>Text you type</h2><p>Text typed in the typing tests and tools is processed only in your browser. The Hindi typing tool keeps a draft in your browser so you don't lose it on refresh.</p>
-<h2>Cookies and analytics</h2><p>We may use privacy-friendly analytics and, in future, advertising to keep the site free. If we do, this policy will be updated and any required consent will be requested.</p>
+<h2>Cookies and analytics</h2><p>Essential browser storage keeps your results, course progress, theme and consent choice on your device. Analytics cookies are used <b>only if you choose "Accept all"</b> in the cookie banner; they help us understand which tests and features are useful. If you arrive through a campaign link, the campaign tags in the URL (UTM parameters) are stored in your browser and, with your consent, included in analytics. You can change your choice at any time from <a href="#" data-cookie-settings>Cookie settings</a>.</p>
 <h2>Third-party services</h2><p>Fonts are loaded from Google Fonts, which may log your IP address as part of normal web requests.</p>
 <h2>Clearing your data</h2><p>You can clear all saved results at any time from <a href="/my-progress/">My Progress</a> or by clearing your browser's site data.</p>
 <h2>Contact</h2><p>Questions about privacy: <a href="mailto:${SITE.email}">${SITE.email}</a>.</p>`);
@@ -942,7 +960,7 @@ simplePage("/terms/", "Terms of Use — TypingTestKaro", "Terms of Use", "Terms 
   `<p>By using TypingTestKaro you agree to these terms.</p><h2>Use of the service</h2><p>The site is provided free for personal practice. Do not attempt to disrupt the service, scrape it at scale or republish its passages, lessons or articles without permission.</p>
 <h2>No guarantee</h2><p>Practice results are indicative. Actual exam evaluation is done by the recruiting body using its own software and rules. We do not guarantee selection in any exam.</p>
 <h2>Content</h2><p>Passages, lessons and articles are original content of TypingTestKaro unless stated otherwise. The Krutidev conversion table is adapted from an MIT-licensed open-source project.</p>
-<h2>Changes</h2><p>We may update these terms; the latest version is always on this page.</p>`);
+<h2>Changes</h2><p>We may update these terms; the latest version is always on this page.</p><p><i>Last updated: ${fmtDate(SITE.updated)}</i></p>`);
 simplePage("/disclaimer/", "Disclaimer — TypingTestKaro", "Disclaimer", "TypingTestKaro is not affiliated with SSC, RRB, any High Court or any recruiting body.",
   `<p>TypingTestKaro is an independent practice platform. It is <b>not affiliated with, endorsed by or connected to</b> the Staff Selection Commission, Railway Recruitment Boards, any High Court, the Supreme Court, MAP_IT/CPCT, or any state recruitment body.</p>
 <p>Exam names are used only to describe which exam a practice test is designed for. Exam rules shown on this site are summarised from publicly available notifications and may change. Figures marked "practice target" are our recommendations, not official standards. Always refer to the latest official notification.</p>`);
@@ -1154,6 +1172,16 @@ emit({
   });
 })();
 
+/* ---------------- search page ---------------- */
+emit({
+  path: "/search/", noindex: true, title: "Search — TypingTestKaro", description: "Search typing tests, exams, courses, tools and articles on TypingTestKaro.",
+  body: pageHero({ title: "Search TypingTestKaro", crumbs: [{ name: "Search" }], lead: "Find typing tests, exam pages, courses, tools and articles." }) +
+    `<section class="section-sm"><div class="container" style="max-width:860px">
+    <div class="arch-search"><input class="input" type="search" id="search-page-input" placeholder="e.g. SSC CHSL, Krutidev, 10 minute" aria-label="Search" autofocus></div>
+    <p class="muted" id="search-page-count"></p><div class="search-page-results" id="search-page-results"></div></div></section>`,
+  css: ["/assets/css/pages.css"]
+});
+
 /* ---------------- sitemap, robots, manifest, favicon ---------------- */
 const today = "2026-09-24";
 write("sitemap.xml", `<?xml version="1.0" encoding="UTF-8"?>
@@ -1164,10 +1192,26 @@ ${pages.map((p) => `  <url><loc>${SITE.url}${p.path}</loc><lastmod>${today}</las
 write("robots.txt", `User-agent: *\nAllow: /\nDisallow: /my-progress/\n\nSitemap: ${SITE.url}/sitemap.xml\n`);
 write("manifest.webmanifest", JSON.stringify({
   name: "TypingTestKaro — Typing Test for Govt Exams", short_name: "TypingTestKaro", start_url: "/", display: "standalone",
-  background_color: "#f6faf8", theme_color: "#0f766e", icons: [{ src: "/favicon.svg", sizes: "any", type: "image/svg+xml" }]
+  background_color: "#f6faf8", theme_color: "#0f766e", icons: [{ src: "/favicon.svg", sizes: "any", type: "image/svg+xml" }, { src: "/assets/img/icon-192.png", sizes: "192x192", type: "image/png" }, { src: "/assets/img/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" }]
 }, null, 2));
 write("favicon.svg", `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#053b33"/><stop offset=".6" stop-color="#0f766e"/><stop offset="1" stop-color="#14b8a6"/></linearGradient></defs><rect width="64" height="64" rx="16" fill="url(#g)"/><text x="32" y="42" font-family="Arial,Helvetica,sans-serif" font-size="26" font-weight="800" fill="#fff" text-anchor="middle">TK</text></svg>`);
 
+write("search-index.json", JSON.stringify(searchIdx));
+// Security headers + HTTPS (HSTS) for Netlify / Cloudflare Pages
+write("_headers", `/*
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+  Content-Security-Policy: upgrade-insecure-requests
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/sw.js
+  Cache-Control: no-cache
+`);
 const precache = ["/", "/offline/", "/typing-test/", "/assets/css/main.css", "/assets/css/typing.css", "/assets/css/pages.css",
   "/assets/js/main.js", "/assets/js/fx.js", "/assets/fonts/uncut-sans-variable.woff2", "/assets/js/hindi.js", "/assets/js/typing.js", "/assets/js/passages.js", "/favicon.svg", "/manifest.webmanifest"]
   .concat(HAS_MR ? ["/assets/js/passages-mr.js"] : [])

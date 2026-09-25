@@ -5,7 +5,15 @@ const SITE = {
   name: "TypingTestKaro",
   url: "https://www.typingtestkaro.com",
   tagline: "Typing test for government exams — Hindi & English",
-  email: "support@typingtestkaro.com"
+  email: "support@typingtestkaro.com",
+  // Date shown as "Last updated" on exam and info pages (bump when content is reviewed).
+  updated: "2026-09-25",
+  // Analytics loads only after the visitor accepts cookies. Fill in ONE of these to enable:
+  analytics: {
+    ga4: "",               // Google Analytics 4 measurement ID, e.g. "G-XXXXXXXXXX"
+    plausible: "",         // Plausible domain, e.g. "typingtestkaro.com"
+    cloudflareToken: ""    // Cloudflare Web Analytics token
+  }
 };
 
 // Site author (shown on articles, the author page, About page and in structured data).
@@ -118,6 +126,7 @@ function header(page, courses) {
         <div class="nav-mobile-cta"><a class="btn btn-outline" href="/my-progress/">My Progress</a><a class="btn btn-primary" href="/typing-test/">Start Test</a></div>
       </nav>
       <div class="nav-actions">
+        <button class="nav-circle search-open" type="button" aria-label="Search the site (press /)" aria-haspopup="dialog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
         <button class="nav-circle theme-toggle" type="button" aria-label="Toggle dark mode">${icon.sun}${icon.moon}</button>
         <span class="nav-sep" aria-hidden="true"></span>
         <a class="nav-btn nav-btn-dark" href="/my-progress/">My Progress</a>
@@ -160,12 +169,44 @@ function footer(courses) {
       <p class="foot-note">Exam rules on this site are summarised from recent notifications. Always confirm with the official notification.</p>
       <div class="foot-bar">
         <span class="foot-copy">© <span data-year>2026</span> ${SITE.name} · Founded by <a href="${AUTHOR.path}">${AUTHOR.name}</a> · Made in India</span>
-        <span class="foot-bar-links"><a href="/privacy-policy/">Privacy</a><a href="/terms/">Terms</a><a href="/sitemap.xml">Sitemap</a></span>
+        <span class="foot-bar-links"><a href="/privacy-policy/">Privacy</a><a href="/terms/">Terms</a><a href="#" data-cookie-settings>Cookies</a><a href="/sitemap.xml">Sitemap</a></span>
         <a class="nav-circle foot-top-btn" href="#main" aria-label="Back to top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></a>
       </div>
     </div>
   </div>
 </footer>`;
+}
+
+// Site-wide overlays: search dialog, floating contact / back-to-top, cookie banner, confirm dialog.
+function widgets() {
+  return `<div class="search-dialog" id="search-dialog" role="dialog" aria-modal="true" aria-label="Search TypingTestKaro" hidden>
+  <div class="search-backdrop" data-close></div>
+  <div class="search-panel">
+    <div class="search-bar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input type="search" id="site-search" placeholder="Search tests, exams, courses, articles…" autocomplete="off" aria-label="Search" aria-controls="search-results">
+      <kbd class="search-esc">Esc</kbd></div>
+    <div class="search-results" id="search-results" role="listbox" aria-label="Search results"><p class="search-hint">Try <b>SSC CHSL</b>, <b>Krutidev</b>, <b>1 minute</b> or <b>WPM</b></p></div>
+    <div class="search-foot"><span><kbd>↑</kbd><kbd>↓</kbd> to move · <kbd>Enter</kbd> to open</span><a href="/search/">Full search page →</a></div>
+  </div>
+</div>
+<div class="fab-stack">
+  <div class="fab-menu" id="fab-menu" hidden>
+    <a href="mailto:${SITE.email}"><span aria-hidden="true">✉</span> Email us<small>${SITE.email}</small></a>
+    <a href="/contact/"><span aria-hidden="true">💬</span> Contact form<small>Feedback &amp; exam updates</small></a>
+    <a href="/#faq"><span aria-hidden="true">❓</span> FAQs<small>Quick answers</small></a>
+  </div>
+  <button class="fab fab-top" type="button" aria-label="Back to top" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+  <button class="fab fab-contact" type="button" aria-label="Contact us" aria-expanded="false" aria-controls="fab-menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg></button>
+</div>
+<div class="cookie-banner" id="cookie-banner" role="region" aria-label="Cookie consent" hidden>
+  <p><b>We value your privacy.</b> We use essential browser storage to save your test results on your device. With your permission we'd also use analytics cookies to understand which features help students most. <a href="/privacy-policy/">Privacy policy</a></p>
+  <div class="cookie-actions"><button class="btn btn-outline btn-sm" type="button" data-consent="essential">Essential only</button><button class="btn btn-primary btn-sm" type="button" data-consent="all">Accept all</button></div>
+</div>
+<div class="confirm-dialog" id="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-text" hidden>
+  <div class="search-backdrop" data-cancel></div>
+  <div class="confirm-panel"><h2 id="confirm-title">Are you sure?</h2><p id="confirm-text"></p>
+  <div class="row" style="justify-content:flex-end"><button class="btn btn-outline" type="button" data-cancel>Cancel</button><button class="btn btn-danger" type="button" data-ok>Confirm</button></div></div>
+</div>`;
 }
 
 /**
@@ -178,7 +219,7 @@ function render(page, courses) {
   // GSAP (CDN) + fx.js give every page the same scroll/intro motion; page scripts that
   // need GSAP (home-fx.js) come after it.
   const GSAP = ["https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js", "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"];
-  const js = GSAP.concat((page.js || []).filter((j) => !GSAP.includes(j)), ["/assets/js/fx.js", "/assets/js/main.js"]);
+  const js = GSAP.concat((page.js || []).filter((j) => !GSAP.includes(j)), ["/assets/js/fx.js", "/assets/js/site.js", "/assets/js/main.js"]);
   const schema = [].concat(page.schema || []);
   if (page.breadcrumbs && page.breadcrumbs.length) {
     schema.push({
@@ -206,6 +247,9 @@ ${page.noindex ? '<meta name="robots" content="noindex, follow">\n' : '<meta nam
 <meta property="og:locale" content="en_IN">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/img/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
+<script>window.TE_SITE=${JSON.stringify({ email: SITE.email, analytics: SITE.analytics })};</script>
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -217,11 +261,13 @@ ${schema.map((s) => `<script type="application/ld+json">${JSON.stringify(s)}</sc
 ${page.head || ""}
 </head>
 <body class="${page.bodyClass || ""}">
+<div class="scroll-progress" aria-hidden="true"><i></i></div>
 ${header(page, courses)}
 <main id="main">
 ${page.body}
 </main>
 ${footer(courses)}
+${widgets()}
 ${js.map((j) => `<script src="${j.startsWith("/") ? `${j}?v=${global.BUILD_V || 1}` : j}" defer></script>`).join("\n")}
 </body>
 </html>
@@ -242,7 +288,7 @@ function pageHero({ title, lead, crumbs = [], badges = [] }) {
 }
 
 function faqBlock(faqs, heading = "Frequently asked questions") {
-  return `<section class="section"><div class="container"><div class="section-head"><h2>${heading}</h2></div><div class="faq">` +
+  return `<section class="section" id="faq"><div class="container"><div class="section-head"><h2>${heading}</h2></div><div class="faq">` +
     faqs.map((f, i) => `<details${i === 0 ? " open" : ""}><summary>${esc(f.q)}</summary><p>${f.a}</p></details>`).join("") +
     "</div></div></section>";
 }
