@@ -273,13 +273,8 @@
     if (!hasAnalytics || window.__teAnalytics) return;
     window.__teAnalytics = true;
     if (cfg.ga4) {
-      window.dataLayer = window.dataLayer || [];
-      window.gtag = function () { window.dataLayer.push(arguments); };
-      window.gtag("js", new Date());
-      var u = utm(), campaign = {};
-      if (u.utm_source) campaign = { campaign_source: u.utm_source, campaign_medium: u.utm_medium, campaign_name: u.utm_campaign, campaign_term: u.utm_term, campaign_content: u.utm_content };
-      window.gtag("config", cfg.ga4, Object.assign({ anonymize_ip: true }, campaign));
-      loadScript("https://www.googletagmanager.com/gtag/js?id=" + encodeURIComponent(cfg.ga4));
+      // The Google tag is already on the page (Consent Mode v2, see <head>); just grant analytics storage.
+      if (window.gtag) window.gtag("consent", "update", { analytics_storage: "granted" });
     } else if (cfg.plausible) {
       window.plausible = window.plausible || function () { (window.plausible.q = window.plausible.q || []).push(arguments); };
       loadScript("https://plausible.io/js/script.tagged-events.js", { "data-domain": cfg.plausible });
@@ -297,6 +292,7 @@
       set("te_consent", consent);
       banner.hidden = true;
       if (consent === "all") startAnalytics();
+      else if (window.gtag && cfg.ga4) window.gtag("consent", "update", { analytics_storage: "denied" });
     });
   }
   if (consent === "all") startAnalytics();

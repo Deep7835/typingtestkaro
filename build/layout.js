@@ -9,8 +9,10 @@ const SITE = {
   // Date shown as "Last updated" on exam and info pages (bump when content is reviewed).
   updated: "2026-09-25",
   // Analytics loads only after the visitor accepts cookies. Fill in ONE of these to enable:
+  // Google Search Console HTML-tag verification
+  googleVerification: "HYnZG12ZZKnQ5b-r4Q-KPaSmlMSrEO_t4OSmEKR47lk",
   analytics: {
-    ga4: "",               // Google Analytics 4 measurement ID, e.g. "G-XXXXXXXXXX"
+    ga4: "G-MDFNKJ66LT",   // Google Analytics 4 measurement ID
     plausible: "",         // Plausible domain, e.g. "typingtestkaro.com"
     cloudflareToken: ""    // Cloudflare Web Analytics token
   }
@@ -250,6 +252,17 @@ ${page.noindex ? '<meta name="robots" content="noindex, follow">\n' : '<meta nam
 <link rel="icon" href="/assets/img/favicon-32.png" type="image/png" sizes="32x32">
 <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
 <script>window.TE_SITE=${JSON.stringify({ email: SITE.email, analytics: SITE.analytics })};</script>
+${SITE.googleVerification ? `<meta name="google-site-verification" content="${SITE.googleVerification}">` : ""}
+${SITE.analytics.ga4 ? `<!-- Google tag (gtag.js) with Consent Mode v2: analytics cookies only after "Accept all" -->
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag("consent", "default", { ad_storage: "denied", ad_user_data: "denied", ad_personalization: "denied", analytics_storage: "denied", wait_for_update: 500 });
+try { if (localStorage.getItem("te_consent") === "all") gtag("consent", "update", { analytics_storage: "granted" }); } catch (e) {}
+gtag("js", new Date());
+gtag("config", "${SITE.analytics.ga4}");
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=${SITE.analytics.ga4}"></script>` : ""}
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
