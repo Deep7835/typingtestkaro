@@ -1,7 +1,7 @@
 ---
 title: 30-Day Typing Practice Plan - Beginner to Exam-Ready
 description: A structured 30-day typing practice plan with daily routines and a week-by-week table to take you from beginner to exam-ready speed in English or Hindi.
-date: 2026-09-10
+date: 2026-10-07
 category: Typing Tips
 keywords: typing practice, typing practice plan, 30 day typing plan, typing practice for exams, daily typing practice, typing speed improvement
 readTime: 9 min
