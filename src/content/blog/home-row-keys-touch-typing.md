@@ -1,7 +1,7 @@
 ---
 title: Home Row Keys and Finger Placement - Touch Typing Basics
 description: Learn the home row keys, correct finger placement and touch typing basics for English and Hindi. Includes a finger-key chart, posture tips and easy drills.
-date: 2026-09-02
+date: 2026-10-07
 category: Keyboard & Layouts
 keywords: touch typing, home row keys, finger placement, typing finger position, learn typing, touch typing for beginners
 readTime: 8 min
